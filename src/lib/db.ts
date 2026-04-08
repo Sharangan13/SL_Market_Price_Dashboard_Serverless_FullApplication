@@ -6,20 +6,19 @@ declare global {
 }
 
 function createPool(): Pool {
-  console.log('[DB] Creating new pool...'); // Debug
+  console.log('[DB] Creating new pool...');
+
   const p = new Pool({
-    host: process.env.DB_HOST,
-    port: Number(process.env.DB_PORT) || 5432,
-    database: process.env.DB_NAME,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    ssl: { rejectUnauthorized: false },
+    connectionString: process.env.DATABASE_URL, // ✅ use direct URL
+    ssl: {
+      rejectUnauthorized: false, // ✅ required for Supabase (important!)
+    },
     max: 5,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000, // increase for serverless
   });
 
-  // Test the connection immediately
+  // Test connection
   p.connect()
     .then(client => {
       console.log('[DB] Connection successful');
@@ -32,8 +31,8 @@ function createPool(): Pool {
   return p;
 }
 
-// Re-use pool across hot reloads in dev; create fresh in production
 const pool: Pool = global._pgPool ?? createPool();
+
 if (process.env.NODE_ENV !== 'production') {
   global._pgPool = pool;
   console.log('[DB] Using global pool cache');
